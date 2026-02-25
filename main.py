@@ -6,6 +6,16 @@ INPUT_FILE = "inputs.txt"
 OUTPUT_FILE = "output.txt"
 TIMEOUT = 10
 
+# ==========================
+# CONFIG
+# ==========================
+
+RENAME = "Amir"   # ← هر وقت خواستی عوض کن
+
+
+# ==========================
+# Fetch
+# ==========================
 
 def fetch(url):
     try:
@@ -16,6 +26,10 @@ def fetch(url):
         pass
     return None
 
+
+# ==========================
+# Multi Decode
+# ==========================
 
 def try_decode(text):
     for _ in range(3):
@@ -28,6 +42,10 @@ def try_decode(text):
     return text
 
 
+# ==========================
+# Extract Valid Configs
+# ==========================
+
 def extract_configs(text):
     lines = text.split("\n")
     valid = []
@@ -38,12 +56,11 @@ def extract_configs(text):
     return valid
 
 
-# ==============================
-# 🔥 Professional Fingerprint
-# ==============================
+# ==========================
+# Professional Fingerprint
+# ==========================
 
 def fingerprint(line):
-
     try:
 
         if line.startswith("vmess://"):
@@ -76,6 +93,34 @@ def fingerprint(line):
         return line
 
 
+# ==========================
+# Scoring (فقط برای مرتب سازی)
+# ==========================
+
+def score(line):
+
+    s = 0
+
+    if "reality" in line:
+        s += 3
+    if "tls" in line:
+        s += 2
+    if "security=" in line:
+        s += 1
+    if "ws" in line:
+        s += 1
+    if "grpc" in line:
+        s += 1
+    if "sni=" in line or "host=" in line:
+        s += 1
+
+    return s
+
+
+# ==========================
+# MAIN
+# ==========================
+
 def main():
 
     collected = []
@@ -92,19 +137,34 @@ def main():
         configs = extract_configs(data)
         collected.extend(configs)
 
-    # ==============================
-    # Dedup حرفه‌ای
-    # ==============================
+    # -------- Dedup حرفه‌ای --------
 
     seen = set()
-    final = []
+    deduped = []
 
     for line in collected:
         key = fingerprint(line)
         if key in seen:
             continue
         seen.add(key)
-        final.append(line)
+        deduped.append(line)
+
+    # -------- Score + Sort --------
+
+    sorted_configs = sorted(
+        deduped,
+        key=lambda x: score(x),
+        reverse=True
+    )
+
+    # -------- Rename --------
+
+    final = []
+    for line in sorted_configs:
+        base = line.split("#")[0]
+        final.append(f"{base}#{RENAME}")
+
+    # -------- Output --------
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(final))
